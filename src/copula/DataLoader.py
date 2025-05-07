@@ -117,4 +117,16 @@ def load_returns_from_data_folder(
     returns_df = returns_df.dropna(how="any")
     if returns_df.empty:
         raise RuntimeError("Resulting returns DataFrame is empty after alignment – check timestamps")
+
+    returns_df = returns_df.dropna(how="any")
+    if returns_df.empty:
+        raise RuntimeError(
+            "Resulting returns DataFrame is empty after alignment – check timestamps")
+
+    # 🚨 Sanity check: Print correlations and standard deviations
+    print("\n===== Sanity Check =====")
+    print("Correlation matrix:")
+    print(returns_df.corr())
+    print("\nStandard deviations:")
+    print(returns_df.std())
     return returns_df
