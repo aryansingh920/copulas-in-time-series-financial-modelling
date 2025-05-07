@@ -34,6 +34,7 @@ from __future__ import annotations
 import os
 from typing import Literal, List
 
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -43,7 +44,8 @@ def _compute_returns(price: pd.Series, return_type: Literal["log", "pct"] = "log
     if return_type == "log":
         returns = np.log(price).diff()
     elif return_type == "pct":
-        returns = price.pct_change()
+        # returns = price.pct_change()
+        returns = price.pct_change().dropna()
     else:
         raise ValueError("return_type must be 'log' or 'pct'")
     return returns.dropna()
@@ -129,4 +131,9 @@ def load_returns_from_data_folder(
     print(returns_df.corr())
     print("\nStandard deviations:")
     print(returns_df.std())
+
+    plt.hist(returns_df.values.flatten(), bins=50, alpha=0.7)
+
+    plt.title("Distribution of Log-Returns")
+    plt.show()
     return returns_df
