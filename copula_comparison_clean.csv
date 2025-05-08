@@ -1,4 +1,4 @@
 Asset Pair,Pearson Correlation,Spearman Correlation,Kendall's Tau,Lower Tail Dependence,Upper Tail Dependence,Scatter Plot,Sample Size,Recommended Copula
-Apple_MetaModel_2024_to_2025 — NVIDIA_HypeCycle_Fixed,0.1293855028371765,0.06664693606526276,0.04395219123505976,0.0,0.07968127490039834,qqplots/scatter_Apple_MetaModel_2024_to_2025_vs_NVIDIA_HypeCycle_Fixed.png,251,Gaussian Copula (symmetric)
-Apple_MetaModel_2024_to_2025 — PureGBMTest,-0.17928595728318134,-0.056024283817112504,-0.03636653386454183,0.0796812749003984,0.0,qqplots/scatter_Apple_MetaModel_2024_to_2025_vs_PureGBMTest.png,251,Gaussian Copula (symmetric)
-NVIDIA_HypeCycle_Fixed — PureGBMTest,-0.1056537754976149,-0.026520204894706887,-0.01839043824701195,0.0,0.0,qqplots/scatter_NVIDIA_HypeCycle_Fixed_vs_PureGBMTest.png,251,Gaussian Copula (symmetric)
+Asset_1 — Asset_2,0.44186062336068616,0.4293695894783579,0.29327454909819634,0.12,0.2399999999999998,qqplots/scatter_Asset_1_vs_Asset_2.png,500,Gumbel Copula (upper tail dependence)
+Asset_1 — Asset_3,0.20573075354197956,0.21357215028860116,0.14228456913827653,0.12,0.07999999999999993,qqplots/scatter_Asset_1_vs_Asset_3.png,500,Gaussian Copula (symmetric)
+Asset_2 — Asset_3,0.8210443932019343,0.8136468385873543,0.6168016032064128,0.6,0.5599999999999995,qqplots/scatter_Asset_2_vs_Asset_3.png,500,"Gaussian or t-Copula (symmetric, strong)"
