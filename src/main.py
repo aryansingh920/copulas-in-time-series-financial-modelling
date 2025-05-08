@@ -27,6 +27,7 @@ def plot_returns(df: pd.DataFrame, out: str = 'returns_timeseries.png') -> None:
         plt.grid(alpha=.3)
     plt.tight_layout()
     plt.savefig(out)
+    # plt.show()
     plt.close()
 
 
