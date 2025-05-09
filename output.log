@@ -1,0 +1,277 @@
+(.venv) (base) aryansingh@Aryans-MacBook-Air copulas-in-time-series % python3 src/main.py
+🔍 Loading data from: data/ …
+
+===== Sanity Check =====
+Correlation matrix:
+                              covar       dcc     garch  ...  stocks - Mastercard Inc  stocks - PepsiCo Inc  stocks - Visa Inc
+covar                      1.000000 -0.703861 -0.736789  ...                -0.672966             -0.452376          -0.696285
+dcc                       -0.703861  1.000000  0.504080  ...                 0.526633              0.666649           0.521995
+garch                     -0.736789  0.504080  1.000000  ...                 0.678443              0.278474           0.690309
+stocks - Chevron Corp     -0.381061  0.600775  0.279201  ...                 0.567055              0.877460           0.532097
+stocks - Coca-Cola Co     -0.407822  0.589364  0.439314  ...                 0.682842              0.838531           0.641111
+stocks - Exxon Mobil Corp -0.515270  0.627909  0.435373  ...                 0.708298              0.862321           0.685021
+stocks - Mastercard Inc   -0.672966  0.526633  0.678443  ...                 1.000000              0.561560           0.984400
+stocks - PepsiCo Inc      -0.452376  0.666649  0.278474  ...                 0.561560              1.000000           0.534269
+stocks - Visa Inc         -0.696285  0.521995  0.690309  ...                 0.984400              0.534269           1.000000
+
+[9 rows x 9 columns]
+
+Standard deviations:
+covar                        0.255553
+dcc                          1.011083
+garch                        0.858569
+stocks - Chevron Corp        0.382029
+stocks - Coca-Cola Co        0.162152
+stocks - Exxon Mobil Corp    0.575910
+stocks - Mastercard Inc      0.255103
+stocks - PepsiCo Inc         0.157615
+stocks - Visa Inc            0.223997
+dtype: float64
+2025-05-09 18:47:16.892 Python[56412:2381720] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/jx/gsrb4w693h1b2kyl21zw93gr0000gn/T/org.python.python.savedState
+
+===== DATA SUMMARY =====
+             covar          dcc        garch  ...  stocks - Mastercard Inc  stocks - PepsiCo Inc  stocks - Visa Inc
+count  1256.000000  1256.000000  1256.000000  ...              1256.000000           1256.000000        1256.000000
+mean     -0.000589     0.003107     0.000477  ...                 0.000647              0.000382           0.000587
+std       0.255553     1.011083     0.858569  ...                 0.255103              0.157615           0.223997
+min      -0.457262    -2.311472    -1.922476  ...                -0.862577             -0.511422          -0.735624
+25%      -0.210694    -0.373941    -0.512041  ...                -0.186082             -0.096518          -0.175939
+50%      -0.099785     0.126574     0.056143  ...                 0.036038              0.026718           0.051808
+75%       0.215980     0.601110     0.754786  ...                 0.195055              0.117632           0.184255
+max       0.640174     2.204390     1.927722  ...                 0.696637              0.535760           0.570476
+
+[8 rows x 9 columns]
+
+Correlation matrix:
+                             covar     dcc   garch  ...  stocks - Mastercard Inc  stocks - PepsiCo Inc  stocks - Visa Inc
+covar                      1.0000 -0.7039 -0.7368  ...                  -0.6730               -0.4524            -0.6963
+dcc                       -0.7039  1.0000  0.5041  ...                   0.5266                0.6666             0.5220
+garch                     -0.7368  0.5041  1.0000  ...                   0.6784                0.2785             0.6903
+stocks - Chevron Corp     -0.3811  0.6008  0.2792  ...                   0.5671                0.8775             0.5321
+stocks - Coca-Cola Co     -0.4078  0.5894  0.4393  ...                   0.6828                0.8385             0.6411
+stocks - Exxon Mobil Corp -0.5153  0.6279  0.4354  ...                   0.7083                0.8623             0.6850
+stocks - Mastercard Inc   -0.6730  0.5266  0.6784  ...                   1.0000                0.5616             0.9844
+stocks - PepsiCo Inc      -0.4524  0.6666  0.2785  ...                   0.5616                1.0000             0.5343
+stocks - Visa Inc         -0.6963  0.5220  0.6903  ...                   0.9844                0.5343             1.0000
+
+[9 rows x 9 columns]
+
+⚙️  Fitting **GARCH‑Vine Copula** model …
+
+===== GARCH‑Vine Risk (α = 0.05) =====
+VaR[covar] = -0.39930,  CVaR = -0.50600
+VaR[dcc] = -1.59168,  CVaR = -2.04848
+VaR[garch] = -1.08835,  CVaR = -1.35233
+VaR[stocks - Chevron Corp] = -0.61868,  CVaR = -0.77894
+VaR[stocks - Coca-Cola Co] = -0.19644,  CVaR = -0.24479
+VaR[stocks - Exxon Mobil Corp] = -0.94278,  CVaR = -1.18173
+VaR[stocks - Mastercard Inc] = -0.33818,  CVaR = -0.42268
+VaR[stocks - PepsiCo Inc] = -0.20521,  CVaR = -0.25876
+VaR[stocks - Visa Inc] = -0.30603,  CVaR = -0.37895
+Portfolio VaR  = -0.44704
+Portfolio CVaR = -0.57158
+
+⚙️  Fitting **DCC‑GARCH Copula** model …
+Fitting GARCH models to 9 assets...
+DCC model fitting completed successfully.
+
+===== DCC‑GARCH Risk (α = 0.05) =====
+VaR[covar] = -0.40554,  CVaR = -0.50440
+VaR[dcc] = -1.61282,  CVaR = -2.04527
+VaR[garch] = -1.08059,  CVaR = -1.35209
+VaR[stocks - Chevron Corp] = -0.63660,  CVaR = -0.79934
+VaR[stocks - Coca-Cola Co] = -0.20080,  CVaR = -0.25250
+VaR[stocks - Exxon Mobil Corp] = -0.95639,  CVaR = -1.19697
+VaR[stocks - Mastercard Inc] = -0.33824,  CVaR = -0.42326
+VaR[stocks - PepsiCo Inc] = -0.21137,  CVaR = -0.26482
+VaR[stocks - Visa Inc] = -0.30112,  CVaR = -0.37819
+High‑Corr VaR  = -0.42761
+High‑Corr CVaR = -0.53670
+
+⚙️  Fitting **CoVaR Copula** model …
+Fitting GARCH models to 9 assets...
+CoVaR model fitting completed successfully.
+
+===== CoVaR Risk (α = 0.05) =====
+
+-- Conditioning on covar stress --
+dcc                       VaR=-1.60858  CoVaR=-0.80461  ΔCoVaR=0.80397
+garch                     VaR=-1.12973  CoVaR=-0.09830  ΔCoVaR=1.03142
+stocks - Chevron Corp     VaR=-0.62027  CoVaR=-0.72244  ΔCoVaR=-0.10217
+stocks - Coca-Cola Co     VaR=-0.19350  CoVaR=-0.20407  ΔCoVaR=-0.01057
+stocks - Exxon Mobil Corp VaR=-0.94446  CoVaR=-0.89174  ΔCoVaR=0.05272
+stocks - Mastercard Inc   VaR=-0.33968  CoVaR=-0.11724  ΔCoVaR=0.22244
+stocks - PepsiCo Inc      VaR=-0.20531  CoVaR=-0.20953  ΔCoVaR=-0.00422
+stocks - Visa Inc         VaR=-0.30748  CoVaR=-0.06297  ΔCoVaR=0.24451
+Systemic impact (ΣΔCoVaR) = 2.23809
+
+-- Conditioning on dcc stress --
+covar                     VaR=-0.42087  CoVaR=-0.16672  ΔCoVaR=0.25415
+garch                     VaR=-1.12642  CoVaR=-1.70965  ΔCoVaR=-0.58323
+stocks - Chevron Corp     VaR=-0.61615  CoVaR=-0.98876  ΔCoVaR=-0.37261
+stocks - Coca-Cola Co     VaR=-0.18651  CoVaR=-0.30450  ΔCoVaR=-0.11800
+stocks - Exxon Mobil Corp VaR=-0.93614  CoVaR=-1.47999  ΔCoVaR=-0.54385
+stocks - Mastercard Inc   VaR=-0.33151  CoVaR=-0.54132  ΔCoVaR=-0.20981
+stocks - PepsiCo Inc      VaR=-0.19987  CoVaR=-0.32101  ΔCoVaR=-0.12114
+stocks - Visa Inc         VaR=-0.29999  CoVaR=-0.47513  ΔCoVaR=-0.17514
+Systemic impact (ΣΔCoVaR) = -1.86963
+
+-- Conditioning on garch stress --
+covar                     VaR=-0.41002  CoVaR=-0.00188  ΔCoVaR=0.40815
+dcc                       VaR=-1.60997  CoVaR=-2.61102  ΔCoVaR=-1.00105
+stocks - Chevron Corp     VaR=-0.63149  CoVaR=-0.91211  ΔCoVaR=-0.28061
+stocks - Coca-Cola Co     VaR=-0.19633  CoVaR=-0.30449  ΔCoVaR=-0.10816
+stocks - Exxon Mobil Corp VaR=-0.95990  CoVaR=-1.46953  ΔCoVaR=-0.50962
+stocks - Mastercard Inc   VaR=-0.33537  CoVaR=-0.56677  ΔCoVaR=-0.23140
+stocks - PepsiCo Inc      VaR=-0.20341  CoVaR=-0.29680  ΔCoVaR=-0.09339
+stocks - Visa Inc         VaR=-0.30037  CoVaR=-0.50035  ΔCoVaR=-0.19998
+Systemic impact (ΣΔCoVaR) = -2.01608
+
+-- Conditioning on stocks - Chevron Corp stress --
+covar                     VaR=-0.42231  CoVaR=-0.45604  ΔCoVaR=-0.03373
+dcc                       VaR=-1.61422  CoVaR=-2.58529  ΔCoVaR=-0.97107
+garch                     VaR=-1.13013  CoVaR=-1.60529  ΔCoVaR=-0.47515
+stocks - Coca-Cola Co     VaR=-0.19280  CoVaR=-0.32515  ΔCoVaR=-0.13235
+stocks - Exxon Mobil Corp VaR=-0.93394  CoVaR=-1.55621  ΔCoVaR=-0.62227
+stocks - Mastercard Inc   VaR=-0.33587  CoVaR=-0.54876  ΔCoVaR=-0.21288
+stocks - PepsiCo Inc      VaR=-0.20230  CoVaR=-0.33472  ΔCoVaR=-0.13243
+stocks - Visa Inc         VaR=-0.30398  CoVaR=-0.47999  ΔCoVaR=-0.17601
+Systemic impact (ΣΔCoVaR) = -2.75590
+
+-- Conditioning on stocks - Coca-Cola Co stress --
+covar                     VaR=-0.41608  CoVaR=-0.43712  ΔCoVaR=-0.02104
+dcc                       VaR=-1.58293  CoVaR=-2.63386  ΔCoVaR=-1.05093
+garch                     VaR=-1.14086  CoVaR=-1.71015  ΔCoVaR=-0.56929
+stocks - Chevron Corp     VaR=-0.62660  CoVaR=-1.11655  ΔCoVaR=-0.48995
+stocks - Exxon Mobil Corp VaR=-0.96000  CoVaR=-1.65966  ΔCoVaR=-0.69966
+stocks - Mastercard Inc   VaR=-0.34332  CoVaR=-0.56377  ΔCoVaR=-0.22045
+stocks - PepsiCo Inc      VaR=-0.20569  CoVaR=-0.35150  ΔCoVaR=-0.14581
+stocks - Visa Inc         VaR=-0.30926  CoVaR=-0.51083  ΔCoVaR=-0.20156
+Systemic impact (ΣΔCoVaR) = -3.39869
+
+-- Conditioning on stocks - Exxon Mobil Corp stress --
+covar                     VaR=-0.40973  CoVaR=-0.41027  ΔCoVaR=-0.00053
+dcc                       VaR=-1.60730  CoVaR=-2.62696  ΔCoVaR=-1.01966
+garch                     VaR=-1.14120  CoVaR=-1.71669  ΔCoVaR=-0.57550
+stocks - Chevron Corp     VaR=-0.64475  CoVaR=-1.05548  ΔCoVaR=-0.41073
+stocks - Coca-Cola Co     VaR=-0.19456  CoVaR=-0.32204  ΔCoVaR=-0.12748
+stocks - Mastercard Inc   VaR=-0.34177  CoVaR=-0.55741  ΔCoVaR=-0.21564
+stocks - PepsiCo Inc      VaR=-0.20458  CoVaR=-0.34937  ΔCoVaR=-0.14479
+stocks - Visa Inc         VaR=-0.30825  CoVaR=-0.49643  ΔCoVaR=-0.18818
+Systemic impact (ΣΔCoVaR) = -2.68251
+
+-- Conditioning on stocks - Mastercard Inc stress --
+covar                     VaR=-0.41792  CoVaR=-0.15637  ΔCoVaR=0.26155
+dcc                       VaR=-1.58402  CoVaR=-2.63889  ΔCoVaR=-1.05487
+garch                     VaR=-1.12291  CoVaR=-1.89231  ΔCoVaR=-0.76939
+stocks - Chevron Corp     VaR=-0.63499  CoVaR=-0.99172  ΔCoVaR=-0.35673
+stocks - Coca-Cola Co     VaR=-0.19405  CoVaR=-0.31587  ΔCoVaR=-0.12182
+stocks - Exxon Mobil Corp VaR=-0.95333  CoVaR=-1.52078  ΔCoVaR=-0.56746
+stocks - PepsiCo Inc      VaR=-0.20709  CoVaR=-0.33277  ΔCoVaR=-0.12567
+stocks - Visa Inc         VaR=-0.29963  CoVaR=-0.51811  ΔCoVaR=-0.21848
+Systemic impact (ΣΔCoVaR) = -2.95286
+
+-- Conditioning on stocks - PepsiCo Inc stress --
+covar                     VaR=-0.41114  CoVaR=-0.40917  ΔCoVaR=0.00197
+dcc                       VaR=-1.60187  CoVaR=-2.76208  ΔCoVaR=-1.16021
+garch                     VaR=-1.10577  CoVaR=-1.67783  ΔCoVaR=-0.57206
+stocks - Chevron Corp     VaR=-0.62922  CoVaR=-1.08663  ΔCoVaR=-0.45742
+stocks - Coca-Cola Co     VaR=-0.19551  CoVaR=-0.33677  ΔCoVaR=-0.14125
+stocks - Exxon Mobil Corp VaR=-0.95905  CoVaR=-1.63294  ΔCoVaR=-0.67389
+stocks - Mastercard Inc   VaR=-0.33661  CoVaR=-0.58225  ΔCoVaR=-0.24564
+stocks - Visa Inc         VaR=-0.29994  CoVaR=-0.50644  ΔCoVaR=-0.20649
+Systemic impact (ΣΔCoVaR) = -3.45499
+
+-- Conditioning on stocks - Visa Inc stress --
+covar                     VaR=-0.40785  CoVaR=-0.13400  ΔCoVaR=0.27385
+dcc                       VaR=-1.60197  CoVaR=-2.60964  ΔCoVaR=-1.00767
+garch                     VaR=-1.13153  CoVaR=-1.85353  ΔCoVaR=-0.72200
+stocks - Chevron Corp     VaR=-0.62919  CoVaR=-0.98759  ΔCoVaR=-0.35840
+stocks - Coca-Cola Co     VaR=-0.19368  CoVaR=-0.32549  ΔCoVaR=-0.13181
+stocks - Exxon Mobil Corp VaR=-0.95650  CoVaR=-1.52490  ΔCoVaR=-0.56840
+stocks - Mastercard Inc   VaR=-0.33999  CoVaR=-0.56797  ΔCoVaR=-0.22798
+stocks - PepsiCo Inc      VaR=-0.20997  CoVaR=-0.32860  ΔCoVaR=-0.11863
+Systemic impact (ΣΔCoVaR) = -2.86104
+
+System‑Stress VaR (all conditioning assets stressed):
+
+
+===== PART 3: COPULA FAMILY COMPARISON =====
+
+Input data shape: (1256, 9)
+
+Created empirical copula (uniform margins)
+Generated 1256 samples from the empirical copula
+
+Processing Gaussian copula:
+Energy Score: 0.0047
+
+Processing Clayton copula:
+Energy Score: 0.0302
+
+Processing Student-t copula:
+Energy Score: 0.0050
+
+Processing DCC model:
+Fitting GARCH models to 9 assets...
+DCC model fitting completed successfully.
+Transforming non-uniform outputs to uniform margins (original range: [-9.0472, 10.3675])
+After transformation: range [0.0008, 0.9992]
+Energy Score: 0.0046
+
+Processing GARCH-Vine model:
+Transforming non-uniform outputs to uniform margins (original range: [-8.3615, 10.1316])
+After transformation: range [0.0008, 0.9992]
+Energy Score: 0.0209
+
+Processing CoVaR model:
+Fitting GARCH models to 9 assets...
+CoVaR model fitting completed successfully.
+Transforming non-uniform outputs to uniform margins (original range: [-9.4268, 10.3947])
+After transformation: range [0.0008, 0.9992]
+Energy Score: 0.0047
+
+Running copula comparison (fallback to remove errors)...
+Analyzing 36 asset pairs in fallback mode
+
+===== COPULA COMPARISON TABLE =====
+                                         Asset Pair  Pearson Correlation  Spearman Correlation  Kendall's Tau  Lower Tail Dependence  Upper Tail Dependence                                                             Scatter Plot  Sample Size                       Recommended Copula
+                                        covar — dcc            -0.703861              -0.60232      -0.426104                      0                      0                                         qqplots/scatter_covar_vs_dcc.png         1256 Gaussian or t-Copula (symmetric, strong)
+                                      covar — garch            -0.736789             -0.690471       -0.46356                      0                      0                                       qqplots/scatter_covar_vs_garch.png         1256 Gaussian or t-Copula (symmetric, strong)
+                      covar — stocks - Chevron Corp            -0.381061              -0.26311       -0.15043                      0              0.0318471                       qqplots/scatter_covar_vs_stocks - Chevron Corp.png         1256              Gaussian Copula (symmetric)
+                      covar — stocks - Coca-Cola Co            -0.407822             -0.298355       -0.18495                      0                      0                       qqplots/scatter_covar_vs_stocks - Coca-Cola Co.png         1256              Gaussian Copula (symmetric)
+                  covar — stocks - Exxon Mobil Corp             -0.51527             -0.348754      -0.223727                      0                      0                   qqplots/scatter_covar_vs_stocks - Exxon Mobil Corp.png         1256              Gaussian Copula (symmetric)
+                    covar — stocks - Mastercard Inc            -0.672966             -0.625188      -0.436164                      0                      0                     qqplots/scatter_covar_vs_stocks - Mastercard Inc.png         1256              Gaussian Copula (symmetric)
+                       covar — stocks - PepsiCo Inc            -0.452376             -0.356971      -0.235453                      0              0.0159236                        qqplots/scatter_covar_vs_stocks - PepsiCo Inc.png         1256              Gaussian Copula (symmetric)
+                          covar — stocks - Visa Inc            -0.696285             -0.643773      -0.452374                      0                      0                           qqplots/scatter_covar_vs_stocks - Visa Inc.png         1256              Gaussian Copula (symmetric)
+                                        dcc — garch              0.50408              0.459899       0.306331              0.0955414                      0                                         qqplots/scatter_dcc_vs_garch.png         1256              Gaussian Copula (symmetric)
+                        dcc — stocks - Chevron Corp             0.600775              0.483952        0.32293               0.207006               0.127389                         qqplots/scatter_dcc_vs_stocks - Chevron Corp.png         1256              Gaussian Copula (symmetric)
+                        dcc — stocks - Coca-Cola Co             0.589364              0.514874       0.362279               0.191083              0.0636943                         qqplots/scatter_dcc_vs_stocks - Coca-Cola Co.png         1256   Clayton Copula (lower tail dependence)
+                    dcc — stocks - Exxon Mobil Corp             0.627909              0.481653       0.319042              0.0477707               0.127389                     qqplots/scatter_dcc_vs_stocks - Exxon Mobil Corp.png         1256              Gaussian Copula (symmetric)
+                      dcc — stocks - Mastercard Inc             0.526633              0.437948       0.296282               0.175159              0.0477707                       qqplots/scatter_dcc_vs_stocks - Mastercard Inc.png         1256   Clayton Copula (lower tail dependence)
+                         dcc — stocks - PepsiCo Inc             0.666649               0.55789       0.394235               0.334395               0.207006                          qqplots/scatter_dcc_vs_stocks - PepsiCo Inc.png         1256   Clayton Copula (lower tail dependence)
+                            dcc — stocks - Visa Inc             0.521995              0.431217       0.290882               0.159236              0.0477707                             qqplots/scatter_dcc_vs_stocks - Visa Inc.png         1256   Clayton Copula (lower tail dependence)
+                      garch — stocks - Chevron Corp             0.279201              0.144113      0.0771411               0.175159              0.0159236                       qqplots/scatter_garch_vs_stocks - Chevron Corp.png         1256   Clayton Copula (lower tail dependence)
+                      garch — stocks - Coca-Cola Co             0.439314              0.344502       0.235448               0.270701               0.143312                       qqplots/scatter_garch_vs_stocks - Coca-Cola Co.png         1256   Clayton Copula (lower tail dependence)
+                  garch — stocks - Exxon Mobil Corp             0.435373              0.246832       0.136329               0.175159              0.0955414                   qqplots/scatter_garch_vs_stocks - Exxon Mobil Corp.png         1256              Gaussian Copula (symmetric)
+                    garch — stocks - Mastercard Inc             0.678443              0.716672       0.524008               0.127389               0.334395                     qqplots/scatter_garch_vs_stocks - Mastercard Inc.png         1256    Gumbel Copula (upper tail dependence)
+                       garch — stocks - PepsiCo Inc             0.278474              0.174374      0.0997285               0.127389                      0                        qqplots/scatter_garch_vs_stocks - PepsiCo Inc.png         1256   Clayton Copula (lower tail dependence)
+                          garch — stocks - Visa Inc             0.690309              0.724336        0.52752               0.143312               0.318471                           qqplots/scatter_garch_vs_stocks - Visa Inc.png         1256    Gumbel Copula (upper tail dependence)
+      stocks - Chevron Corp — stocks - Coca-Cola Co             0.822482              0.792928       0.597346               0.318471               0.350318       qqplots/scatter_stocks - Chevron Corp_vs_stocks - Coca-Cola Co.png         1256 Gaussian or t-Copula (symmetric, strong)
+  stocks - Chevron Corp — stocks - Exxon Mobil Corp             0.958493              0.952512       0.820474               0.780255                0.66879   qqplots/scatter_stocks - Chevron Corp_vs_stocks - Exxon Mobil Corp.png         1256   Clayton Copula (lower tail dependence)
+    stocks - Chevron Corp — stocks - Mastercard Inc             0.567055              0.421448       0.272046               0.286624               0.191083     qqplots/scatter_stocks - Chevron Corp_vs_stocks - Mastercard Inc.png         1256              Gaussian Copula (symmetric)
+       stocks - Chevron Corp — stocks - PepsiCo Inc              0.87746              0.856883       0.661743               0.350318               0.477707        qqplots/scatter_stocks - Chevron Corp_vs_stocks - PepsiCo Inc.png         1256    Gumbel Copula (upper tail dependence)
+          stocks - Chevron Corp — stocks - Visa Inc             0.532097              0.393539       0.249989               0.238854               0.207006           qqplots/scatter_stocks - Chevron Corp_vs_stocks - Visa Inc.png         1256              Gaussian Copula (symmetric)
+  stocks - Coca-Cola Co — stocks - Exxon Mobil Corp             0.843732              0.795467       0.595425               0.350318               0.414013   qqplots/scatter_stocks - Coca-Cola Co_vs_stocks - Exxon Mobil Corp.png         1256 Gaussian or t-Copula (symmetric, strong)
+    stocks - Coca-Cola Co — stocks - Mastercard Inc             0.682842              0.579543       0.403071               0.191083               0.286624     qqplots/scatter_stocks - Coca-Cola Co_vs_stocks - Mastercard Inc.png         1256              Gaussian Copula (symmetric)
+       stocks - Coca-Cola Co — stocks - PepsiCo Inc             0.838531              0.804521        0.61156               0.334395               0.525478        qqplots/scatter_stocks - Coca-Cola Co_vs_stocks - PepsiCo Inc.png         1256    Gumbel Copula (upper tail dependence)
+          stocks - Coca-Cola Co — stocks - Visa Inc             0.641111              0.542246       0.371805               0.159236                0.22293           qqplots/scatter_stocks - Coca-Cola Co_vs_stocks - Visa Inc.png         1256              Gaussian Copula (symmetric)
+stocks - Exxon Mobil Corp — stocks - Mastercard Inc             0.708298              0.517584       0.339323               0.286624               0.175159 qqplots/scatter_stocks - Exxon Mobil Corp_vs_stocks - Mastercard Inc.png         1256   Clayton Copula (lower tail dependence)
+   stocks - Exxon Mobil Corp — stocks - PepsiCo Inc             0.862321              0.841897        0.63998               0.175159               0.493631    qqplots/scatter_stocks - Exxon Mobil Corp_vs_stocks - PepsiCo Inc.png         1256    Gumbel Copula (upper tail dependence)
+      stocks - Exxon Mobil Corp — stocks - Visa Inc             0.685021              0.492968       0.319012                0.22293               0.191083       qqplots/scatter_stocks - Exxon Mobil Corp_vs_stocks - Visa Inc.png         1256              Gaussian Copula (symmetric)
+     stocks - Mastercard Inc — stocks - PepsiCo Inc              0.56156              0.435058       0.288446                0.22293               0.143312      qqplots/scatter_stocks - Mastercard Inc_vs_stocks - PepsiCo Inc.png         1256              Gaussian Copula (symmetric)
+        stocks - Mastercard Inc — stocks - Visa Inc               0.9844              0.980948       0.884975                0.89172               0.843949         qqplots/scatter_stocks - Mastercard Inc_vs_stocks - Visa Inc.png         1256 Gaussian or t-Copula (symmetric, strong)
+           stocks - PepsiCo Inc — stocks - Visa Inc             0.534269               0.41223       0.269927               0.207006               0.191083            qqplots/scatter_stocks - PepsiCo Inc_vs_stocks - Visa Inc.png         1256              Gaussian Copula (symmetric)
+
+Saved clean comparison to copula_comparison_clean.csv.
+(.venv) (base) aryansingh@Aryans-MacBook-Air copulas-in-time-series % 
