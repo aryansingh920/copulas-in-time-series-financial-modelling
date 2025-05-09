@@ -1,8 +1,7 @@
 """
-Created on 05 / 05 / 2025
+Multivariate Clayton copula.
 
-@author: Aryan
-Updated: 09 / 05 / 2025 – added CDF / PDF implementations
+Implements the Marshall–Olkin construction so any dimension ≥ 2 is supported.
 """
 
 from typing import Dict
@@ -12,55 +11,47 @@ from copula.CopulaDistribution import CopulaDistribution
 
 
 class ClaytonCopula(CopulaDistribution):
-    """Bivariate Clayton copula."""
+    """Clayton copula for arbitrary dimension d ≥ 2."""
 
     def __init__(self) -> None:
         super().__init__(name="Clayton")
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # Analytical functions
-    # ──────────────────────────────────────────────────────────────────────────
-    def cdf(self, u: np.ndarray, params: Dict) -> np.ndarray:
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+    def simulate(self, n_samples: int, params: Dict) -> np.ndarray:
         """
-        Clayton copula CDF.
+        Draw samples from a d‑dimensional Clayton copula.
 
-        Args
-        ----
-        u       : array‑like, shape (..., 2) with values in (0, 1]
-        params  : {'theta': float > 0}
+        Parameters
+        ----------
+        n_samples : int
+            Number of observations to generate.
+        params : Dict
+            *Required*  – ``theta``  (float > 0)  
+            *Optional*  – ``dimension``  (int ≥ 2, default 2).
 
         Returns
         -------
-        np.ndarray – C(u₁,u₂)
+        np.ndarray
+            ``(n_samples, dimension)`` array of uniforms.
         """
         theta = params.get("theta", 2.0)
+        d = params.get("dimension", 2)
+
         if theta <= 0:
-            raise ValueError("θ (theta) must be > 0 for the Clayton copula.")
+            raise ValueError("θ must be > 0 for a Clayton copula.")
+        if d < 2:
+            raise ValueError("dimension must be at least 2.")
 
-        u1, u2 = u[..., 0], u[..., 1]
-        return np.power(np.power(u1, -theta) + np.power(u2, -theta) - 1.0,
-                        -1.0 / theta)
+        # Marshall–Olkin algorithm
+        # 1. latent variable  W ~ Gamma(1/θ, 1)
+        w = np.random.gamma(shape=1.0 / theta, scale=1.0, size=n_samples)
 
-    def pdf(self, u: np.ndarray, params: Dict) -> np.ndarray:
-        """
-        Clayton copula PDF.
+        # 2. independent uniforms
+        u = np.random.uniform(size=(n_samples, d))
 
-        Args
-        ----
-        u       : array‑like, shape (..., 2) with values in (0, 1]
-        params  : {'theta': float > 0}
+        # 3. transform
+        x = (1.0 - np.log(u) / w[:, None]) ** (-1.0 / theta)
 
-        Returns
-        -------
-        np.ndarray – c(u₁,u₂)
-        """
-        theta = params.get("theta", 2.0)
-        if theta <= 0:
-            raise ValueError("θ (theta) must be > 0 for the Clayton copula.")
-
-        u1, u2 = u[..., 0], u[..., 1]
-        inner = np.power(u1, -theta) + np.power(u2, -theta) - 1.0
-        coef = (1.0 + theta) * np.power(u1 * u2, -(1.0 + theta))
-        return coef * np.power(inner, -(2.0 + 1.0 / theta))
-
-    # (simulate() implementation from the original file remains unchanged)
+        return x
