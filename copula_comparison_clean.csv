@@ -1,4 +1,1 @@
-Asset Pair,Pearson Correlation,Spearman Correlation,Kendall's Tau,Lower Tail Dependence,Upper Tail Dependence,Scatter Plot,Sample Size,Recommended Copula
-Apple_MetaModel_2024_to_2025 — NVIDIA_HypeCycle_Fixed,0.1293855028371765,0.06664693606526276,0.04395219123505976,0.0,0.07968127490039834,qqplots/scatter_Apple_MetaModel_2024_to_2025_vs_NVIDIA_HypeCycle_Fixed.png,251,Gaussian Copula (symmetric)
-Apple_MetaModel_2024_to_2025 — PureGBMTest,-0.17928595728318134,-0.056024283817112504,-0.03636653386454183,0.0796812749003984,0.0,qqplots/scatter_Apple_MetaModel_2024_to_2025_vs_PureGBMTest.png,251,Gaussian Copula (symmetric)
-NVIDIA_HypeCycle_Fixed — PureGBMTest,-0.1056537754976149,-0.026520204894706887,-0.01839043824701195,0.0,0.0,qqplots/scatter_NVIDIA_HypeCycle_Fixed_vs_PureGBMTest.png,251,Gaussian Copula (symmetric)
+Copula Family,Status

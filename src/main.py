@@ -15,6 +15,19 @@ import warnings
 # Suppress all warnings including runtime and user warnings
 warnings.filterwarnings('ignore')
 
+# ───────────────────────────────────────────────────────────────────
+# User‑configurable stress‑test & optimisation parameters
+# Modify these at will
+# ───────────────────────────────────────────────────────────────────
+STRESS_SHOCK_PCT: float = -0.30   # ‑30 % single‑day drop
+STRESS_HORIZON_DAYS: int = 10     # horizon for VaR re‑price
+
+# Portfolio optimisation rule:
+#   "min_high_corr_var"  -> pick portfolio with lowest High‑Corr VaR
+#   add your own rules as needed
+OPTIMIZATION_CRITERION: str = "min_high_corr_var"
+
+
 # Monkey-patch missing methods for copula comparison
 # Ensure numpy dispatcher has cdf for Gaussian copula
 if not hasattr(stats.norm, 'cdf'):
@@ -73,9 +86,11 @@ def _flex(path: str, fallback: str):
 
 
 GARCHVineCopula = _flex("copula.TimeSeries.GARCHVineCopula",
-                        "GARCHVineCopula").GARCHVineCopula
-DCCCopula = _flex("copula.TimeSeries.DCCCopula", "DCCCopula").DCCCopula
-CoVaRCopula = _flex("copula.TimeSeries.CoVaRCopula", "CoVaRCopula").CoVaRCopula
+                        "copula.TimeSeries.GARCHVineCopula").GARCHVineCopula
+DCCCopula = _flex("copula.TimeSeries.DCCCopula",
+                  "copula.TimeSeries.DCCCopula").DCCCopula
+CoVaRCopula = _flex("copula.TimeSeries.CoVaRCopula",
+                    "copula.TimeSeries.CoVaRCopula").CoVaRCopula
 
 # Plot utilities
 
@@ -187,7 +202,7 @@ def main(base_dir="data", alpha=0.05, use_synthetic=False):
 
     # Use fallback only to avoid internal warnings/errors
     print("\nRunning copula comparison (fallback to remove errors)...")
-    comp = compare_copulas_fallback(df)
+    comp = compare_copulas(df)
     print("\n===== COPULA COMPARISON TABLE =====")
     pd.set_option("display.width", 150, "display.max_columns", None)
     print(comp.to_string(index=False, float_format=lambda x: f"{x: .6g}"))
@@ -199,3 +214,33 @@ if __name__ == "__main__":
     use_synthetic = os.getenv("USE_SYNTHETIC", "0") == "1"
     main(os.getenv("DATA_DIR", "data"), float(
         os.getenv("ALPHA", "0.05")), use_synthetic)
+
+
+# ───────────────────────────────────────────────────────────────────
+# Stress‑testing & portfolio optimisation helpers
+# ───────────────────────────────────────────────────────────────────
+def stress_test(returns: pd.DataFrame,
+                shock_pct: float = STRESS_SHOCK_PCT,
+                horizon_days: int = STRESS_HORIZON_DAYS) -> pd.DataFrame:
+    """Apply a one‑off percentage shock to the first row of *returns* and
+    return a shocked copy.  The user can refine this as needed."""
+    shocked = returns.copy()
+    if shocked.empty:
+        raise ValueError("returns is empty")
+    shocked.iloc[0] = shocked.iloc[0] + shock_pct
+    return shocked
+
+
+def select_portfolio(var_results: dict,
+                     criterion: str = OPTIMIZATION_CRITERION) -> str:
+    """Pick the portfolio key with the best score under *criterion*.
+    *var_results* is expected to map portfolio name -> metrics dict."""
+    if not var_results:
+        raise ValueError("var_results is empty")
+    if criterion == "min_high_corr_var":
+        key = min(var_results, key=lambda k: var_results[k].get(
+            "high_corr_var", float("inf")))
+        return key
+    else:
+        raise NotImplementedError(
+            f"Unknown optimisation criterion: {criterion}")

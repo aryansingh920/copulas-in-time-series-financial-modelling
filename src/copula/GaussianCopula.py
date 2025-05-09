@@ -10,7 +10,7 @@ from typing import Dict
 import numpy as np
 from scipy.stats import norm, multivariate_normal
 
-from copula.CopulaDistribution import CopulaDistribution
+from CopulaDistribution import CopulaDistribution
 
 
 class GaussianCopula(CopulaDistribution):

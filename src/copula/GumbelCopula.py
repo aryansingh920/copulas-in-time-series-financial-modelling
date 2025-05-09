@@ -9,7 +9,7 @@ from typing import Dict
 
 import numpy as np
 
-from copula.CopulaDistribution import CopulaDistribution
+from CopulaDistribution import CopulaDistribution
 
 
 class GumbelCopula(CopulaDistribution):

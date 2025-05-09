@@ -8,7 +8,7 @@ Updated: 09 / 05 / 2025 – added CDF / PDF implementations
 from typing import Dict
 import numpy as np
 
-from copula.CopulaDistribution import CopulaDistribution
+from CopulaDistribution import CopulaDistribution
 
 
 class ClaytonCopula(CopulaDistribution):

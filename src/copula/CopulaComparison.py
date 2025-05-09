@@ -16,12 +16,12 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 # Import custom copula implementations
-from copula.GaussianCopula import GaussianCopula
-from copula.StudentTCopula import StudentTCopula
-from copula.ClaytonCopula import ClaytonCopula
+from GaussianCopula import GaussianCopula
+from StudentTCopula import StudentTCopula
+from ClaytonCopula import ClaytonCopula
 
 # Need to implement GumbelCopula or use fallback
-from copula.GumbelCopula import GumbelCopula
+from GumbelCopula import GumbelCopula
 
 # ------------------------------------------------------------------------- #
 # Internal helpers
@@ -282,7 +282,7 @@ def compare_copulas(
             "fit_func": _fit_clayton_copula
         },
         "Gumbel Copula": {
-            "model": None,  # Missing implementation, will handle specially
+            "model": GumbelCopula(),
             "sel": "AIC",
             "gof": "Chi-Square Test",
             "dist": "Distance Correlation",

@@ -12,8 +12,8 @@ import pandas as pd
 
 from typing import List,  Dict
 
-from src.copula.Marginal import Marginal
-from copula.CopulaDistribution import CopulaDistribution
+from src.Marginal import Marginal
+from CopulaDistribution import CopulaDistribution
 
 class CopulaModel:
     """Main class for copula-based modeling."""
@@ -48,7 +48,7 @@ class CopulaModel:
             DataFrame with samples from the joint distribution
         """
         # Generate samples from the copula
-        uniform_samples = self.copula.simulate(n_samples, copula_params)
+        uniform_samples = self.simulate(n_samples, copula_params)
 
         # Transform using the marginal distributions
         data = {}

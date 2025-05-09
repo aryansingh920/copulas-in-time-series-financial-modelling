@@ -15,7 +15,7 @@ try:
 except ImportError:  # pragma: no cover
     multivariate_t = None
 
-from copula.CopulaDistribution import CopulaDistribution
+from CopulaDistribution import CopulaDistribution
 
 
 class StudentTCopula(CopulaDistribution):
