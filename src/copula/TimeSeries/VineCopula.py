@@ -1,150 +1,125 @@
 """
 Created on 05/05/2025
+Last updated on 09/05/2025 – added compute_risk_measures()
 
 @author: Aryan
 
 Filename: VineCopula.py
-
 Relative Path: src/copula/TimeSeries/VineCopula.py
 """
 
+from __future__ import annotations
+
 from typing import List
 
-# from matplotlib.pylab import norm
 import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.stats import norm
 
+
 class VineCopula:
     """
-    Simple implementation of a Vine Copula structure.
-    
-    This is a basic implementation focusing on the R-vine structure.
-    Full vine copula implementation would require more sophisticated algorithms.
+    **Simplified** R‑vine copula implementation.  For production work you should
+    swap this out for a full library, but this is sufficient for testing.
     """
 
-    def __init__(self, n_variables: int, copula_families: List[str] = None):
-        """
-        Initialize a vine copula structure.
-        
-        Args:
-            n_variables: Number of variables in the vine
-            copula_families: List of copula families to use (defaults to all Gaussian)
-        """
+    # ──────────────────────────────────────────────────────────────────────
+    # Construction
+    # ──────────────────────────────────────────────────────────────────────
+    def __init__(self, n_variables: int, copula_families: List[str] | None = None):
         self.n_variables = n_variables
-        # Number of edges in complete graph
         self.n_edges = n_variables * (n_variables - 1) // 2
 
-        # Set default copula families if not provided
         if copula_families is None:
-            self.copula_families = ['gaussian'] * self.n_edges
+            self.copula_families = ["gaussian"] * self.n_edges
         else:
             if len(copula_families) != self.n_edges:
                 raise ValueError(
-                    f"Expected {self.n_edges} copula families, got {len(copula_families)}")
+                    f"Expected {self.n_edges} copula families, got {len(copula_families)}"
+                )
             self.copula_families = copula_families
 
-        # Initialize parameters for each edge
-        self.parameters = {}
-        self.tree_structure = []
+        self.parameters: dict[tuple[int, int], dict] = {}
+        self.tree_structure: list = []
         self.is_fitted = False
 
-    def fit(self, data: pd.DataFrame, method: str = 'spearman'):
-        """
-        Fit the vine copula structure to data.
-        This is a simplified implementation using correlation-based selection.
-        
-        Args:
-            data: DataFrame with variables
-            method: Method for computing correlations ('pearson', 'spearman', 'kendall')
-            
-        Returns:
-            Self for method chaining
-        """
-        # Compute the empirical distribution function
-        u_data = pd.DataFrame()
-        for col in data.columns:
-            u_data[col] = stats.rankdata(data[col]) / (len(data) + 1)
+    # ──────────────────────────────────────────────────────────────────────
+    # Fitting (very lightweight)
+    # ──────────────────────────────────────────────────────────────────────
+    def fit(self, data: pd.DataFrame, method: str = "spearman") -> "VineCopula":
+        # Empirical CDF transform
+        u = data.rank(axis=0, pct=True, method="average")
 
-        # Compute correlation matrix
-        corr_matrix = u_data.corr(method=method).abs()
+        corr = u.corr(method=method).abs()
 
-        # First tree: Maximum spanning tree based on correlations
-        remaining_nodes = set(range(self.n_variables))
-        tree_edges = []
+        # Build maximum‑spanning first tree via Prim's algorithm
+        rem = set(range(self.n_variables))
+        tree: list[tuple[int, int, float]] = []
 
-        # Add the first edge (strongest correlation)
-        i, j = np.unravel_index(
-            np.argmax(corr_matrix.values), corr_matrix.shape)
-        tree_edges.append((i, j, corr_matrix.iloc[i, j]))
-        remaining_nodes.remove(i)
-        visited_nodes = {i}
+        # initial edge
+        i, j = divmod(corr.values.argmax(), self.n_variables)
+        tree.append((i, j, corr.iat[i, j]))
+        rem.remove(i)
+        visited = {i}
 
-        # Construct the maximum spanning tree using Prim's algorithm
-        while remaining_nodes:
-            max_corr = -1
-            next_edge = None
+        while rem:
+            best = (-1.0, None)  # (corr, edge)
+            for vi in visited:
+                for vj in rem:
+                    if corr.iat[vi, vj] > best[0]:
+                        best = (corr.iat[vi, vj], (vi, vj, corr.iat[vi, vj]))
+            _, edge = best
+            tree.append(edge)
+            visited.add(edge[1])
+            rem.remove(edge[1])
 
-            # Find the strongest connection between visited and unvisited nodes
-            for i in visited_nodes:
-                for j in remaining_nodes:
-                    if corr_matrix.iloc[i, j] > max_corr:
-                        max_corr = corr_matrix.iloc[i, j]
-                        next_edge = (i, j, max_corr)
+        self.tree_structure.append(tree)
 
-            tree_edges.append(next_edge)
-            visited_nodes.add(next_edge[1])
-            remaining_nodes.remove(next_edge[1])
-
-        # Store the first tree
-        self.tree_structure.append(tree_edges)
-
-        # Store parameters (simplified version using correlations)
-        for i, edge in enumerate(tree_edges):
-            v1, v2, corr = edge
+        # Store simplified Gaussian parameters
+        for k, (v1, v2, c) in enumerate(tree):
             self.parameters[(v1, v2)] = {
-                'type': self.copula_families[i % len(self.copula_families)],
-                # Approximate transformation
-                'param': 2 * np.sin(np.pi * corr / 6)
+                "type": self.copula_families[k],
+                "param": 2 * np.sin(np.pi * c / 6),  # Fisher transform
             }
 
         self.is_fitted = True
         return self
 
+    # ──────────────────────────────────────────────────────────────────────
+    # Simulation (simplified)
+    # ──────────────────────────────────────────────────────────────────────
     def simulate(self, n_samples: int) -> pd.DataFrame:
-        """
-        Simulate from the fitted vine copula (simplified implementation).
-        
-        Args:
-            n_samples: Number of samples to generate
-            
-        Returns:
-            DataFrame with uniform samples
-        """
         if not self.is_fitted:
-            raise RuntimeError("Vine copula must be fitted before simulation")
+            raise RuntimeError("Call .fit() before .simulate().")
 
-        # This is a simplified simulation approach
-        # True vine simulation would involve sequential simulation through the trees
+        u = np.random.rand(n_samples, self.n_variables)
 
-        # Initialize with independent uniforms
-        u_samples = np.random.uniform(0, 1, (n_samples, self.n_variables))
+        for v1, v2, _ in self.tree_structure[0]:
+            rho = self.parameters[(v1, v2)]["param"]
+            z1 = norm.ppf(u[:, v1])
+            z2 = norm.ppf(u[:, v2])
+            z2 = rho * z1 + np.sqrt(1 - rho**2) * z2
+            u[:, v2] = norm.cdf(z2)
 
-        # Apply simple Gaussian copula transformation based on the first tree
-        tree_edges = self.tree_structure[0]
-        for edge in tree_edges:
-            v1, v2, _ = edge
-            param = self.parameters.get((v1, v2), {'param': 0})['param']
+        cols = [f"U{i+1}" for i in range(self.n_variables)]
+        return pd.DataFrame(u, columns=cols)
 
-            # Simple Gaussian transformation (this is a simplification)
-            z1 = norm.ppf(u_samples[:, v1])
-            z2 = norm.ppf(u_samples[:, v2])
+    # ──────────────────────────────────────────────────────────────────────
+    # NEW  – Risk measures
+    # ──────────────────────────────────────────────────────────────────────
+    @staticmethod
+    def compute_risk_measures(sim_ret: np.ndarray, alpha: float = 0.95) -> dict[str, float]:
+        """
+        Compute equal‑weighted portfolio VaR & CVaR from simulated *simple* returns.
+        """
+        if sim_ret.ndim != 2:
+            raise ValueError("sim_ret must be 2‑D (samples × assets).")
 
-            # Apply correlation
-            z2_new = param * z1 + np.sqrt(1 - param**2) * z2
+        port_ret = sim_ret.mean(axis=1)  # equal weights
+        port_ret.sort()                  # ascending
 
-            # Transform back to uniform
-            u_samples[:, v2] = norm.cdf(z2_new)
-
-        return pd.DataFrame(u_samples, columns=[f'U{i+1}' for i in range(self.n_variables)])
+        idx = int((1 - alpha) * len(port_ret))
+        var = -port_ret[idx]
+        cvar = -port_ret[:idx].mean()
+        return {"VaR": float(var), "CVaR": float(cvar)}

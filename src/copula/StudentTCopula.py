@@ -1,63 +1,67 @@
 """
-Created on 05/05/2025
+Created on 05 / 05 / 2025
 
 @author: Aryan
-
-Filename: StudentTCopula.py
-
-Relative Path: src/copula/StudentTCopula.py
+Updated: 09 / 05 / 2025 – added CDF / PDF implementations
 """
 
 from typing import Dict
 
 import numpy as np
-# from copula import CopulaDistribution
+from scipy.stats import t
+try:
+    # SciPy ≥ 1.11
+    from scipy.stats import multivariate_t
+except ImportError:  # pragma: no cover
+    multivariate_t = None
+
 from copula.CopulaDistribution import CopulaDistribution
 
 
-from scipy.stats import t
-
-
-
 class StudentTCopula(CopulaDistribution):
-    """Student's t-copula implementation."""
+    """Student‑t copula (arbitrary dimension)."""
 
-    def __init__(self):
-        """Initialize a Student's t-copula."""
-        super().__init__(name="Student-t")
+    def __init__(self) -> None:
+        super().__init__(name="StudentT")
 
-    def simulate(self, n_samples: int, params: Dict) -> np.ndarray:
-        """
-        Simulate samples from a Student's t-copula.
-        
-        Args:
-            n_samples: Number of samples to generate
-            params: Dictionary containing 'corr_matrix' and 'df' (degrees of freedom)
-            
-        Returns:
-            Uniform samples from the Student's t-copula
-        """
-        corr_matrix = params.get('corr_matrix')
-        df = params.get('df', 3)  # Default df = 3
-        dim = corr_matrix.shape[0]
+    # ──────────────────────────────────────────────────────────────────────────
+    # Helpers
+    # ──────────────────────────────────────────────────────────────────────────
+    @staticmethod
+    def _corr_matrix(params: Dict, dim: int) -> np.ndarray:
+        R = params.get("corr")
+        if R is None:
+            R = np.eye(dim)
+        R = np.asarray(R, dtype=float)
+        if R.shape != (dim, dim):
+            raise ValueError(f"Correlation matrix must be {dim}×{dim}.")
+        return R
 
-        # Generate multivariate normal samples
-        mvn_samples = np.random.multivariate_normal(
-            mean=np.zeros(dim),
-            cov=corr_matrix,
-            size=n_samples
-        )
+    # ──────────────────────────────────────────────────────────────────────────
+    # Analytical functions
+    # ──────────────────────────────────────────────────────────────────────────
+    def cdf(self, u: np.ndarray, params: Dict) -> np.ndarray:
+        if multivariate_t is None:  # pragma: no cover
+            raise RuntimeError(
+                "SciPy ≥ 1.11 is required for the t‑copula CDF.")
 
-        # Generate chi-square random variable with df degrees of freedom
-        chi_square = np.random.chisquare(df=df, size=n_samples) / df
-        chi_square = chi_square.reshape(-1, 1)
+        dim = u.shape[-1]
+        nu = params.get("df", 4)
+        R = self._corr_matrix(params, dim)
 
-        # Apply the formula for Student's t distribution
-        t_samples = mvn_samples / np.sqrt(chi_square)
+        x = t.ppf(u.clip(1e-12, 1 - 1e-12), df=nu)
+        return multivariate_t.cdf(x, shape=R, df=nu)
 
-        # Transform to uniform using the t CDF
-        uniform_samples = np.zeros_like(t_samples)
-        for i in range(dim):
-            uniform_samples[:, i] = t.cdf(t_samples[:, i], df=df)
+    def pdf(self, u: np.ndarray, params: Dict) -> np.ndarray:
+        if multivariate_t is None:  # pragma: no cover
+            raise RuntimeError(
+                "SciPy ≥ 1.11 is required for the t‑copula PDF.")
 
-        return uniform_samples
+        dim = u.shape[-1]
+        nu = params.get("df", 4)
+        R = self._corr_matrix(params, dim)
+
+        x = t.ppf(u.clip(1e-12, 1 - 1e-12), df=nu)
+        joint_pdf = multivariate_t.pdf(x, shape=R, df=nu)
+        marginals = np.prod(t.pdf(x, df=nu), axis=-1)
+        return joint_pdf / marginals

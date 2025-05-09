@@ -1,56 +1,59 @@
 """
-Multivariate Gumbel Copula implementation.
-Supports arbitrary dimension (d ≥ 2) using the Marshall–Olkin algorithm.
+Created on 05 / 05 / 2025
 
-Created on 05/05/2025
 @author: Aryan
-
-Relative Path: src/copula/GumbelCopula.py
+Updated: 09 / 05 / 2025 – added CDF / PDF implementations
 """
 
 from typing import Dict
+
 import numpy as np
+
 from copula.CopulaDistribution import CopulaDistribution
 
 
 class GumbelCopula(CopulaDistribution):
-    """Multivariate Gumbel Copula (d ≥ 2)."""
+    """Bivariate Gumbel copula."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(name="Gumbel")
 
-    def simulate(self, n_samples: int, params: Dict) -> np.ndarray:
+    # ──────────────────────────────────────────────────────────────────────────
+    # Analytical functions
+    # ──────────────────────────────────────────────────────────────────────────
+    def cdf(self, u: np.ndarray, params: Dict) -> np.ndarray:
         """
-        Generate samples from a d-dimensional Gumbel copula.
+        Gumbel copula CDF.
 
-        Parameters
-        ----------
-        n_samples : int
-            Number of samples to generate.
-        params : Dict
-            *Required* - `theta` (float ≥ 1)
-            *Optional* - `dimension` (int ≥ 2, default 2).
+        θ ≥ 1.
 
-        Returns
-        -------
-        np.ndarray
-            (n_samples, dimension) array of uniforms.
+        C(u,v) = exp{ −[(−ln u)^θ + (−ln v)^θ]^{1/θ} }
         """
-        theta = params.get("theta", 1.5)
-        d = params.get("dimension", 2)
-
+        theta = params.get("theta", 2.0)
         if theta < 1:
-            raise ValueError("Theta must be ≥ 1 for Gumbel copula.")
-        if d < 2:
-            raise ValueError("Dimension must be at least 2.")
+            raise ValueError("θ (theta) must be ≥ 1 for the Gumbel copula.")
 
-        # Step 1: Generate latent variable V using stable distribution
-        v = np.random.gamma(1.0 / theta, 1.0, size=n_samples)
+        u1, u2 = u[..., 0], u[..., 1]
+        a = (-np.log(u1)) ** theta
+        b = (-np.log(u2)) ** theta
+        return np.exp(-np.power(a + b, 1.0 / theta))
 
-        # Step 2: Generate independent uniforms
-        u = np.random.uniform(0, 1, (n_samples, d))
+    def pdf(self, u: np.ndarray, params: Dict) -> np.ndarray:
+        """
+        Gumbel copula PDF.
 
-        # Step 3: Transform using Marshall–Olkin method
-        w = (-np.log(u) / v[:, None]) ** (1 / theta)
+        c(u,v) = C(u,v) · [ (−ln u·−ln v)^{θ−1} ·
+                  {1 + (θ−1)( (−ln u)^θ + (−ln v)^θ )^{1/θ} } ] / (u v)
+        """
+        theta = params.get("theta", 2.0)
+        if theta < 1:
+            raise ValueError("θ (theta) must be ≥ 1 for the Gumbel copula.")
 
-        return np.exp(-w)
+        u1, u2 = u[..., 0], u[..., 1]
+        ln_u1, ln_u2 = -np.log(u1), -np.log(u2)
+        S = (ln_u1 ** theta + ln_u2 ** theta) ** (1.0 / theta)
+
+        C = np.exp(-S)
+        part1 = (ln_u1 * ln_u2) ** (theta - 1)
+        part2 = 1.0 + (theta - 1.0) * S
+        return C * part1 * part2 / (u1 * u2)

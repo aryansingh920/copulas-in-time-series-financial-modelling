@@ -1,18 +1,23 @@
 """
 Created on 05/05/2025
+Last updated on 09/05/2025 – added robust error handling & input validation
 
 @author: Aryan
 
 Filename: GARCHVineCopula.py
-
 Relative Path: src/copula/TimeSeries/GARCHVineCopula.py
 """
 
-from typing import Dict
-from matplotlib import pyplot as plt
-from scipy.stats import norm
+from __future__ import annotations
+
+import logging
+from typing import Dict, List, Tuple
+
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
+from scipy.stats import norm
+
 from copula.TimeSeries.FinancialCopulaModel import FinancialCopulaModel
 from copula.TimeSeries.GARCHModel import GARCHModel
 from copula.TimeSeries.VineCopula import VineCopula
@@ -20,219 +25,216 @@ from copula.TimeSeries.VineCopula import VineCopula
 
 class GARCHVineCopula(FinancialCopulaModel):
     """
-    GARCH-based Vine Copula model for capturing volatility and complex dependency
-    structures in high-dimensional asset modeling.
+    GARCH‑based Vine Copula for capturing volatility dynamics and complex
+    inter‑asset dependencies in high‑dimensional settings.
     """
 
-    def __init__(self):
-        """Initialize the GARCH-Vine Copula model."""
+    # ──────────────────────────────────────────────────────────────────────
+    # Construction
+    # ──────────────────────────────────────────────────────────────────────
+    def __init__(self) -> None:
         super().__init__(
             name="GARCH-based Vine Copula",
-            description="Volatility + complex dependency",
-            use_case="High-dimensional asset modeling"
+            description="Volatility + complex dependency",
+            use_case="High-dimensional asset modeling",
         )
-        self.garch_models = []
-        self.vine_copula = None
-        self.asset_names = None
-        self.standardized_residuals = None
-        self.original_data = None
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.garch_models: List[Tuple[str, GARCHModel]] = []
+        self.vine_copula: VineCopula | None = None
+        self.asset_names: List[str] | None = None
+        self.standardized_residuals: pd.DataFrame | None = None
+        self.original_data: pd.DataFrame | None = None
 
-    def fit(self, data: pd.DataFrame, **kwargs) -> 'GARCHVineCopula':
+    # ──────────────────────────────────────────────────────────────────────
+    # Fitting
+    # ──────────────────────────────────────────────────────────────────────
+    def fit(self, data: pd.DataFrame, **kwargs) -> "GARCHVineCopula":
         """
-        Fit the GARCH-Vine Copula model to financial data.
-        
-        Args:
-            data: Financial time series returns
-            **kwargs: Additional parameters for fitting
-                - garch_params: Dictionary of GARCH parameters by column
-                - copula_families: List of copula families for the vine
-                
-        Returns:
-            Self for method chaining
+        Fit the GARCH‑Vine Copula model to return data.
+
+        Parameters
+        ----------
+        data : DataFrame
+            Asset returns (columns = assets).
+        **kwargs
+            garch_params    – dict of per‑asset parameter overrides
+            copula_families – list of pair‑copula families for the vine
         """
+        self._validate_input_data(data)
         self.original_data = data.copy()
-        self.asset_names = data.columns
+        self.asset_names = list(data.columns)
         n_assets = len(self.asset_names)
 
-        # Get GARCH parameters if provided
-        garch_params = kwargs.get('garch_params', {})
+        garch_params: Dict[str, Dict] = kwargs.get("garch_params", {})
+        copula_families = kwargs.get("copula_families")
 
-        # Step 1: Fit GARCH models to each asset
-        print(f"Fitting GARCH models to {n_assets} assets...")
-        standardized_residuals = pd.DataFrame(index=data.index)
+        # ------------------------------------------------------------------
+        # 1.  Fit univariate GARCH models
+        # ------------------------------------------------------------------
+        self.logger.info("Fitting GARCH models to %d assets …", n_assets)
+        std_resid = pd.DataFrame(index=data.index)
 
         for asset in self.asset_names:
-            # Create GARCH model with parameters (if provided) or defaults
             params = garch_params.get(asset, {})
-            garch_model = GARCHModel(
-                omega=params.get('omega', 0.01),
-                alpha=params.get('alpha', 0.1),
-                beta=params.get('beta', 0.8)
-            )
+            try:
+                model = GARCHModel(
+                    omega=params.get("omega", 0.01),
+                    alpha=params.get("alpha", 0.10),
+                    beta=params.get("beta", 0.80),
+                )
+                model.fit(data[asset].values)
+            except Exception as exc:
+                self.logger.exception(
+                    "GARCH fit failed for %s: %s", asset, exc)
+                raise RuntimeError(
+                    f"GARCH fit failed for {asset}: {exc}") from exc
 
-            # Fit GARCH model to asset returns
-            returns = data[asset].values
-            garch_model.fit(returns)
+            self.garch_models.append((asset, model))
+            std_resid[asset] = model.residuals
 
-            # Store fitted model
-            self.garch_models.append((asset, garch_model))
+        self.standardized_residuals = std_resid
 
-            # Store standardized residuals for copula modeling
-            standardized_residuals[asset] = garch_model.residuals
-
-        self.standardized_residuals = standardized_residuals
-
-        # Step 2: Fit vine copula to standardized residuals
-        print("Fitting Vine Copula to standardized residuals...")
-        copula_families = kwargs.get('copula_families', None)
-        self.vine_copula = VineCopula(n_assets, copula_families)
-        self.vine_copula.fit(standardized_residuals)
+        # ------------------------------------------------------------------
+        # 2.  Fit the vine copula
+        # ------------------------------------------------------------------
+        self.logger.info("Fitting Vine Copula to standardized residuals …")
+        try:
+            self.vine_copula = VineCopula(n_assets, copula_families)
+            self.vine_copula.fit(std_resid)
+        except Exception as exc:
+            self.logger.exception("Vine copula fit failed: %s", exc)
+            raise RuntimeError(f"Vine copula fit failed: {exc}") from exc
 
         self.is_fitted = True
-        print("Model fitting completed successfully.")
+        self.logger.info("GARCH‑Vine Copula fitting completed.")
         return self
 
+    # ──────────────────────────────────────────────────────────────────────
+    # Simulation
+    # ──────────────────────────────────────────────────────────────────────
     def simulate(self, n_samples: int, **kwargs) -> pd.DataFrame:
         """
-        Simulate from the fitted GARCH-Vine Copula model.
-        
-        Args:
-            n_samples: Number of samples to generate
-            **kwargs: Additional simulation parameters
-                - seed: Random seed
-                - forecast_horizon: Number of steps ahead to forecast
-                - innovation_dist: Distribution for innovations
-                
-        Returns:
-            DataFrame with simulated asset returns
+        Generate synthetic asset returns from the fitted model.
+
+        Parameters
+        ----------
+        n_samples          – number of simulated rows
+        seed               – RNG seed (optional)
+        forecast_horizon   – steps ahead for GARCH volatility forecast
+        innovation_dist    – ignored for now (placeholder)
         """
         self._check_fitted()
 
-        seed = kwargs.get('seed', None)
+        seed = kwargs.get("seed")
         if seed is not None:
             np.random.seed(seed)
 
-        forecast_horizon = kwargs.get('forecast_horizon', 1)
-        innovation_dist = kwargs.get('innovation_dist', None)
+        horizon = kwargs.get("forecast_horizon", 1)
 
-        # Step 1: Simulate from vine copula to get correlated uniform variables
-        u_samples = self.vine_copula.simulate(n_samples)
+        # 1. Copula layer → correlated uniforms
+        u = self.vine_copula.simulate(n_samples)
 
-        # Step 2: Transform uniforms to standardized residuals
-        z_samples = pd.DataFrame(index=range(n_samples))
-        for i, asset in enumerate(self.asset_names):
-            z_samples[asset] = norm.ppf(u_samples[f'U{i+1}'])
+        # 2. Inverse‑CDF to standard normals
+        z = pd.DataFrame(index=range(n_samples))
+        for idx, asset in enumerate(self.asset_names):
+            z[asset] = norm.ppf(u[f"U{idx+1}"])
 
-        # Step 3: Simulate GARCH processes with the correlated innovations
-        simulated_returns = pd.DataFrame(index=range(n_samples))
+        # 3. Feed through GARCH forecasts
+        sim_ret = pd.DataFrame(index=range(n_samples))
+        for asset, model in self.garch_models:
+            vol_path = model.forecast_volatility(horizon)
+            sigma = vol_path[-1]  # use last horizon step
+            sim_ret[asset] = model.mean + sigma * z[asset]
 
-        for asset_idx, (asset, garch_model) in enumerate(self.garch_models):
-            # Get volatility forecast
-            forecasted_vol = garch_model.forecast_volatility(forecast_horizon)
+        return sim_ret
 
-            # For multi-step ahead, use last forecasted volatility
-            vol = forecasted_vol[-1]
-
-            # Generate returns using simulated innovations and forecasted volatility
-            asset_innovations = z_samples[asset].values
-            simulated_returns[asset] = garch_model.mean + \
-                vol * asset_innovations
-
-        return simulated_returns
-
+    # ──────────────────────────────────────────────────────────────────────
+    # Risk measures
+    # ──────────────────────────────────────────────────────────────────────
     def compute_risk_measures(self, **kwargs) -> Dict:
         """
-        Compute risk measures specific to GARCH-Vine Copula model.
-        
-        Args:
-            **kwargs: Parameters for risk calculation
-                - alpha: Confidence level for VaR and CVaR
-                - forecast_horizon: Horizon for risk measures
-                - n_simulations: Number of simulations for risk calculation
-                
-        Returns:
-            Dictionary of risk measures
+        Compute VaR and CVaR per asset + equal‑weighted portfolio.
+
+        Parameters
+        ----------
+        alpha             – tail probability (default 0.05)
+        forecast_horizon  – horizon for simulation
+        n_simulations     – simulation count
         """
         self._check_fitted()
 
-        alpha = kwargs.get('alpha', 0.05)
-        forecast_horizon = kwargs.get('forecast_horizon', 1)
-        n_simulations = kwargs.get('n_simulations', 10000)
+        alpha = kwargs.get("alpha", 0.05)
+        horizon = kwargs.get("forecast_horizon", 1)
+        n_sim = kwargs.get("n_simulations", 10_000)
 
-        # Simulate scenarios
-        simulated_returns = self.simulate(
-            n_samples=n_simulations,
-            forecast_horizon=forecast_horizon
+        sims = self.simulate(
+            n_samples=n_sim,
+            forecast_horizon=horizon,
+            seed=kwargs.get("seed"),
         )
 
-        # Calculate risk measures
-        risk_measures = {}
+        var = {}
+        cvar = {}
+        for col in self.asset_names:
+            cutoff = np.percentile(sims[col], alpha * 100.0)
+            var[col] = cutoff
+            cvar[col] = sims[col][sims[col] <= cutoff].mean()
 
-        # Value-at-Risk for each asset
-        var_dict = {}
-        for asset in self.asset_names:
-            var_dict[asset] = np.percentile(
-                simulated_returns[asset], alpha * 100)
-        risk_measures['VaR'] = var_dict
+        weights = np.full(len(self.asset_names), 1.0 / len(self.asset_names))
+        port_ret = sims.dot(weights)
+        port_cutoff = np.percentile(port_ret, alpha * 100.0)
 
-        # Conditional Value-at-Risk (Expected Shortfall)
-        cvar_dict = {}
-        for asset in self.asset_names:
-            returns = simulated_returns[asset].values
-            var_value = var_dict[asset]
-            cvar_dict[asset] = returns[returns <= var_value].mean()
-        risk_measures['CVaR'] = cvar_dict
+        return {
+            "VaR": var,
+            "CVaR": cvar,
+            "Portfolio_VaR": port_cutoff,
+            "Portfolio_CVaR": port_ret[port_ret <= port_cutoff].mean(),
+        }
 
-        # Portfolio VaR (assuming equal weights)
-        n_assets = len(self.asset_names)
-        weights = np.ones(n_assets) / n_assets
-        portfolio_returns = simulated_returns.dot(weights)
-
-        risk_measures['Portfolio_VaR'] = np.percentile(
-            portfolio_returns, alpha * 100)
-        risk_measures['Portfolio_CVaR'] = portfolio_returns[portfolio_returns <=
-                                                            risk_measures['Portfolio_VaR']].mean()
-
-        return risk_measures
-
+    # ──────────────────────────────────────────────────────────────────────
+    # Diagnostics / plotting
+    # ──────────────────────────────────────────────────────────────────────
     def plot_volatility_surface(self, **kwargs) -> plt.Figure:
         """
-        Plot volatility surface for the assets.
-        
-        Args:
-            **kwargs: Parameters for plotting
-                - forecast_horizon: Number of steps to forecast
-                - n_simulations: Number of simulations
-                
-        Returns:
-            Matplotlib figure object
+        Visualize historical and forecast volatilities for each asset.
         """
         self._check_fitted()
 
-        forecast_horizon = kwargs.get('forecast_horizon', 20)
-        fig, axs = plt.subplots(len(self.garch_models),
-                                1, figsize=(10, 3 * len(self.garch_models)))
+        horizon = kwargs.get("forecast_horizon", 20)
+        n_assets = len(self.garch_models)
+        fig, axes = plt.subplots(n_assets, 1, figsize=(10, 3 * n_assets))
 
-        if len(self.garch_models) == 1:
-            axs = [axs]
+        if n_assets == 1:  # keep iterable
+            axes = [axes]
 
-        for i, (asset, garch_model) in enumerate(self.garch_models):
-            # Get historical volatility
-            hist_vol = garch_model.conditional_volatility
+        for ax, (asset, model) in zip(axes, self.garch_models):
+            hist_vol = model.conditional_volatility
+            fcast_vol = model.forecast_volatility(horizon)
 
-            # Forecast volatility
-            forecast_vol = garch_model.forecast_volatility(forecast_horizon)
-
-            # Plot
-            ax = axs[i]
-            ax.plot(range(len(hist_vol)), hist_vol, label='Historical')
-            ax.plot(range(len(hist_vol), len(hist_vol) + forecast_horizon), forecast_vol,
-                    label='Forecast', linestyle='--')
-            ax.set_title(f'Volatility for {asset}')
-            ax.set_ylabel('Volatility')
-            ax.set_xlabel('Time')
+            ax.plot(hist_vol, label="Historical")
+            ax.plot(
+                range(len(hist_vol), len(hist_vol) + horizon),
+                fcast_vol,
+                "--",
+                label="Forecast",
+            )
+            ax.set_title(f"Volatility – {asset}")
+            ax.set_xlabel("Time")
+            ax.set_ylabel("Volatility")
             ax.legend()
-            ax.grid(True, alpha=0.3)
+            ax.grid(alpha=0.3)
 
-        plt.tight_layout()
+        fig.tight_layout()
         return fig
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Internal helpers
+    # ──────────────────────────────────────────────────────────────────────
+    @staticmethod
+    def _validate_input_data(data: pd.DataFrame) -> None:
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("'data' must be a pandas DataFrame.")
+        if data.isna().any().any():
+            raise ValueError("Input data contains NaNs – please clean them.")
+        if data.shape[1] < 2:
+            raise ValueError("Need at least two assets for a copula model.")
