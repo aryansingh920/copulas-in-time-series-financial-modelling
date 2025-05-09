@@ -9,10 +9,9 @@ import os
 np.random.seed(42)
 
 # Parameters
-n_assets = 3  # Number of assets/time series - fixed to 3 to match the matrices defined in functions
 n_days = 1258  # Number of days
 start_date = datetime(2020, 1, 1)  # Start date
-start_prices = [100, 70, 50]  # Starting prices for assets
+start_price = 100  # Starting price for assets
 
 # Create directory for output files
 output_dir = "data"
@@ -65,407 +64,249 @@ def simulate_garch(n_days, omega=0.0001, alpha=0.1, beta=0.8, start_price=100):
 
     return prices, returns, volatilities
 
-# 2. DCC (Dynamic Conditional Correlation) Model Simulation
+# 2. DCC (Dynamic Conditional Correlation) Model Simulation - simplified to one asset
 
 
-def simulate_dcc(n_days, n_assets):
-    # GARCH parameters for each asset
-    omega_values = [0.00005, 0.00008, 0.00006]
-    alpha_values = [0.09, 0.11, 0.10]
-    beta_values = [0.88, 0.86, 0.87]
-
-    # DCC parameters
-    a = 0.05
-    b = 0.93
+def simulate_dcc(n_days, start_price=100):
+    # GARCH parameters
+    omega = 0.00005
+    alpha = 0.09
+    beta = 0.88
 
     # Initialize arrays
-    returns = np.zeros((n_days, n_assets))
-    h = np.zeros((n_days, n_assets))
-    prices = np.zeros((n_days, n_assets))
-    # Store correlation matrices
-    correlations = np.zeros((n_days, n_assets, n_assets))
-    volatilities = np.zeros((n_days, n_assets))  # Store volatilities
+    returns = np.zeros(n_days)
+    h = np.zeros(n_days)
+    prices = np.zeros(n_days)
+    volatilities = np.zeros(n_days)
 
-    # Set initial prices
-    for i in range(n_assets):
-        prices[0, i] = start_prices[i]
+    # Set initial price
+    prices[0] = start_price
 
-    # Initial conditional variances
-    for i in range(n_assets):
-        h[0, i] = omega_values[i] / (1 - alpha_values[i] - beta_values[i])
-        volatilities[0, i] = np.sqrt(h[0, i])
+    # Initial conditional variance
+    h[0] = omega / (1 - alpha - beta)
+    volatilities[0] = np.sqrt(h[0])
 
-    # Unconditional correlation matrix
-    Q_bar = np.array([[1.0, 0.3, 0.5],
-                      [0.3, 1.0, 0.2],
-                      [0.5, 0.2, 1.0]])
-
-    # Initialize dynamic correlation matrix
-    Q = Q_bar.copy()
-    # Set initial correlation matrix
-    correlations[0] = Q_bar.copy()
-
-    # Generate multivariate time series with DCC
+    # Generate time series with DCC-like characteristics
     for t in range(1, n_days):
-        # Update GARCH variances
-        for i in range(n_assets):
-            if t > 1:
-                h[t, i] = omega_values[i] + alpha_values[i] * \
-                    returns[t-1, i]**2 + beta_values[i] * h[t-1, i]
-            else:
-                h[t, i] = h[0, i]
-
-            # Store volatility
-            volatilities[t, i] = np.sqrt(h[t, i])
-
-        # Standard deviations
-        std_devs = np.sqrt(h[t])
-        D = np.diag(std_devs)
-        D_inv = np.diag(1/std_devs)
-
-        # Update Q matrix
+        # Update GARCH variance
         if t > 1:
-            epsilon = returns[t-1] / np.sqrt(h[t-1])
-            epsilon = epsilon.reshape(-1, 1)
-            Q = (1 - a - b) * Q_bar + a * np.dot(epsilon, epsilon.T) + b * Q
+            h[t] = omega + alpha * returns[t-1]**2 + beta * h[t-1]
+        else:
+            h[t] = h[0]
 
-        # Normalize Q to get correlation matrix
-        Q_diag = np.diag(1/np.sqrt(np.diag(Q)))
-        R = np.dot(np.dot(Q_diag, Q), Q_diag)
+        # Store volatility
+        volatilities[t] = np.sqrt(h[t])
 
-        # Store correlation matrix
-        correlations[t] = R.copy()
+        # Generate return with DCC-like characteristics
+        # Adding slight autocorrelation to simulate correlation effects
+        if t > 1:
+            previous_impact = 0.2 * returns[t-1]
+        else:
+            previous_impact = 0
 
-        # Compute covariance matrix
-        Sigma = np.dot(np.dot(D, R), D)
+        # Generate return with time-varying variance
+        z = np.random.normal(0, 1)
+        returns[t] = previous_impact + np.sqrt(h[t]) * z
 
-        # Generate correlated random variables
-        L = cholesky(Sigma, lower=True)
-        z = np.random.normal(0, 1, n_assets)
-        returns[t] = np.dot(L, z)
-
-        # Update prices
+        # Update price
         prices[t] = prices[t-1] * np.exp(returns[t])
 
-    return prices, returns, volatilities, correlations
+    return prices, returns, volatilities
 
-# 3. Vine Copula Simulation (C-Vine structure)
+# 3. Vine Copula Simulation - simplified to one asset
 
 
-def simulate_vine(n_days, n_assets):
-    # GARCH parameters for each asset (margins)
-    omega_values = [0.00004, 0.00007, 0.00005]
-    alpha_values = [0.08, 0.10, 0.09]
-    beta_values = [0.89, 0.87, 0.88]
+def simulate_vine(n_days, start_price=100):
+    # GARCH parameters
+    omega = 0.00004
+    alpha = 0.08
+    beta = 0.89
 
     # Initialize arrays
-    returns = np.zeros((n_days, n_assets))
-    h = np.zeros((n_days, n_assets))
-    prices = np.zeros((n_days, n_assets))
-    volatilities = np.zeros((n_days, n_assets))  # Store volatilities
-    copula_params = np.zeros((n_days, 3))  # Store the 3 copula parameters
+    returns = np.zeros(n_days)
+    h = np.zeros(n_days)
+    prices = np.zeros(n_days)
+    volatilities = np.zeros(n_days)
 
-    # Set initial prices
-    for i in range(n_assets):
-        prices[0, i] = start_prices[i]
+    # Set initial price
+    prices[0] = start_price
 
-    # Initial conditional variances
-    for i in range(n_assets):
-        h[0, i] = omega_values[i] / (1 - alpha_values[i] - beta_values[i])
-        volatilities[0, i] = np.sqrt(h[0, i])
+    # Initial conditional variance
+    h[0] = omega / (1 - alpha - beta)
+    volatilities[0] = np.sqrt(h[0])
 
-    # Vine copula parameters (Gaussian copula with fixed correlations in a C-vine structure)
-    # Correlations between first variable and others
-    rho_1_2 = 0.6
-    rho_1_3 = 0.4
-    # Conditional correlation between 2 and 3 given 1
-    rho_2_3_1 = 0.3
+    # Parameter for skewness (to simulate vine copula characteristics)
+    skew_param = 3
 
-    # Initial copula parameters
-    copula_params[0] = [rho_1_2, rho_1_3, rho_2_3_1]
-
-    # Generate multivariate time series with Vine copula
+    # Generate time series with vine copula-like characteristics
     for t in range(1, n_days):
-        # Update GARCH variances
-        for i in range(n_assets):
-            if t > 1:
-                h[t, i] = omega_values[i] + alpha_values[i] * \
-                    returns[t-1, i]**2 + beta_values[i] * h[t-1, i]
-            else:
-                h[t, i] = h[0, i]
-
-            # Store volatility
-            volatilities[t, i] = np.sqrt(h[t, i])
-
-        # Simple time-varying copula parameters (optional)
-        # Making copula parameters slightly time-varying for demonstration
+        # Update GARCH variance
         if t > 1:
-            # Add small random variation to copula parameters
-            rho_1_2 = max(0.1, min(0.9, rho_1_2 + 0.01 * np.random.normal()))
-            rho_1_3 = max(0.1, min(0.9, rho_1_3 + 0.01 * np.random.normal()))
-            rho_2_3_1 = max(
-                0.1, min(0.9, rho_2_3_1 + 0.01 * np.random.normal()))
+            h[t] = omega + alpha * returns[t-1]**2 + beta * h[t-1]
+        else:
+            h[t] = h[0]
 
-        # Store copula parameters
-        copula_params[t] = [rho_1_2, rho_1_3, rho_2_3_1]
+        # Store volatility
+        volatilities[t] = np.sqrt(h[t])
 
-        # C-Vine copula simulation
-        # Generate uniform variables
-        u = np.random.uniform(0, 1, n_assets)
+        # Generate return with skewed distribution to simulate vine copula
+        z = stats.t.rvs(df=skew_param)  # t-distribution for fat tails
+        returns[t] = np.sqrt(h[t]) * z
 
-        # First variable - direct from uniform
-        z1 = stats.norm.ppf(u[0])
-        returns[t, 0] = z1 * np.sqrt(h[t, 0])
-
-        # Second variable - correlated with first
-        z2 = rho_1_2 * z1 + np.sqrt(1 - rho_1_2**2) * stats.norm.ppf(u[1])
-        returns[t, 1] = z2 * np.sqrt(h[t, 1])
-
-        # Third variable - C-vine structure
-        # First condition on z1
-        cond_mean_3_given_1 = rho_1_3 * z1
-        cond_var_3_given_1 = 1 - rho_1_3**2
-
-        # Then condition on z2 given z1
-        z3 = cond_mean_3_given_1 + np.sqrt(cond_var_3_given_1) * (
-            rho_2_3_1 * (z2 - rho_1_2 * z1) / np.sqrt(1 - rho_1_2**2) +
-            np.sqrt(1 - rho_2_3_1**2) * stats.norm.ppf(u[2])
-        )
-        returns[t, 2] = z3 * np.sqrt(h[t, 2])
-
-        # Update prices
+        # Update price
         prices[t] = prices[t-1] * np.exp(returns[t])
 
-    return prices, returns, volatilities, copula_params
+    return prices, returns, volatilities
 
-# 4. CoVaR Model Simulation
+# 4. CoVaR Model Simulation - simplified to one asset
 
 
-def simulate_covar(n_days, n_assets):
+def simulate_covar(n_days, start_price=100):
     # Initialize arrays
-    returns = np.zeros((n_days, n_assets))
-    prices = np.zeros((n_days, n_assets))
-    volatilities = np.zeros((n_days, n_assets))  # Store asset volatilities
-    system_vol = np.zeros(n_days)  # Store system volatility
-    # Store correlation matrices
-    correlations = np.zeros((n_days, n_assets, n_assets))
+    returns = np.zeros(n_days)
+    prices = np.zeros(n_days)
+    volatilities = np.zeros(n_days)
+    system_vol = np.zeros(n_days)  # System volatility
 
-    # Set initial prices
-    for i in range(n_assets):
-        prices[0, i] = start_prices[i]
+    # Set initial price
+    prices[0] = start_price
 
-    # Parameters for CoVaR model
-    # Base volatilities
-    sigma_base = np.array([0.01, 0.015, 0.012])
+    # Base volatility
+    sigma_base = 0.01
+    volatilities[0] = sigma_base
 
-    # Initial volatilities
-    for i in range(n_assets):
-        volatilities[0, i] = sigma_base[i]
-
-    # Contagion matrix (how asset j affects asset i's risk)
-    contagion = np.array([
-        [1.0, 0.3, 0.4],  # Asset 1's volatility affected by others
-        [0.5, 1.0, 0.2],  # Asset 2's volatility affected by others
-        [0.6, 0.3, 1.0]   # Asset 3's volatility affected by others
-    ])
-
-    # Time-varying dependency parameter
-    dependency_factor = 0.7
-
-    # System-wide volatility factor (common to all assets)
+    # System-wide volatility factor
     system_vol[0] = 0.01
-
-    # Base correlation matrix
-    corr_base = np.array([
-        [1.0, 0.4, 0.3],
-        [0.4, 1.0, 0.5],
-        [0.3, 0.5, 1.0]
-    ])
-
-    # Store initial correlation matrix
-    correlations[0] = corr_base.copy()
 
     # AR(1) process for system volatility
     for t in range(1, n_days):
+        # Update system volatility with AR(1) process
         system_vol[t] = 0.002 + 0.85 * system_vol[t-1] + \
             0.05 * np.random.normal(0, 1)
         if system_vol[t] < 0.001:  # ensure positive volatility
             system_vol[t] = 0.001
 
-        # Asset-specific volatilities affected by past returns
-        vol_adjustment = np.ones(n_assets)
+        # Asset volatility affected by system volatility and previous returns
+        vol_adjustment = 1.0
         if t > 1:
-            # Increase volatility if there was a large negative return
-            for i in range(n_assets):
-                if returns[t-1, i] < -0.01:  # threshold for negative return
-                    # Increase volatility for all assets based on contagion matrix
-                    vol_adjustment += 0.3 * \
-                        contagion[:, i] * abs(returns[t-1, i])
+            # Increase volatility if there was a large negative return (asymmetric effect)
+            if returns[t-1] < -0.01:
+                vol_adjustment += 0.3 * abs(returns[t-1])
 
-        # Current volatilities (adjusted by system vol and contagion)
-        current_vols = sigma_base * vol_adjustment * (1 + system_vol[t])
+        # Current volatility
+        current_vol = sigma_base * vol_adjustment * (1 + system_vol[t])
+        volatilities[t] = current_vol
 
-        # Store asset volatilities
-        for i in range(n_assets):
-            volatilities[t, i] = current_vols[i]
+        # Generate return
+        z = np.random.normal(0, 1)
+        returns[t] = current_vol * z
 
-        # Correlation increases in high volatility periods
-        vol_factor = min(3, 1 + system_vol[t] * 5)  # Limit the increase
-        current_corr = corr_base.copy()
-
-        # Increase correlations in high volatility
-        for i in range(n_assets):
-            for j in range(i+1, n_assets):
-                # Move correlation toward 1 in high volatility
-                current_corr[i, j] = current_corr[j, i] = min(
-                    0.95,
-                    corr_base[i, j] + (1 - corr_base[i, j]) *
-                    (vol_factor - 1) / 2
-                )
-
-        # Store correlation matrix
-        correlations[t] = current_corr.copy()
-
-        # Create covariance matrix
-        cov_matrix = np.zeros((n_assets, n_assets))
-        for i in range(n_assets):
-            for j in range(n_assets):
-                cov_matrix[i, j] = current_vols[i] * \
-                    current_vols[j] * current_corr[i, j]
-
-        # Generate correlated returns
-        L = cholesky(cov_matrix, lower=True)
-        z = np.random.normal(0, 1, n_assets)
-        returns[t] = np.dot(L, z)
-
-        # Update prices
+        # Update price
         prices[t] = prices[t-1] * np.exp(returns[t])
 
-    return prices, returns, volatilities, system_vol, correlations
+    return prices, returns, volatilities, system_vol
 
 
-# Create necessary directories for each model type and asset
+# Create necessary directories for each model type
 model_types = ["garch", "dcc", "vine", "covar"]
 for model in model_types:
-    for i in range(1, n_assets + 1):
-        # Fix: Use consistent directory naming
-        if model == "dcc" or model == "vine" or model == "covar":
-            dir_path = f"{output_dir}/simulated_{model}_asset_{i}"
-        else:
-            dir_path = f"{output_dir}/{model}_asset_{i}"
-
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
+    dir_path = f"{output_dir}/{model}"
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
 
 # Generate time series for each model
 print("Generating GARCH time series...")
-for i in range(n_assets):
-    garch_prices, garch_returns, garch_volatilities = simulate_garch(
-        n_days, start_price=start_prices[i])
+garch_prices, garch_returns, garch_volatilities = simulate_garch(
+    n_days, start_price=start_price)
 
-    # Create DataFrame with prices
-    df_price = pd.DataFrame({
-        'timestamp': dates,
-        'price': garch_prices
-    })
+# Create DataFrame with prices
+df_price = pd.DataFrame({
+    'timestamp': dates,
+    'price': garch_prices
+})
 
-    # Create DataFrame with simulation steps (returns, volatilities)
-    df_steps = pd.DataFrame({
-        'timestamp': dates,
-        'price': garch_prices,
-        'return': garch_returns,
-        'volatility': garch_volatilities
-    })
+# Create DataFrame with simulation steps (returns, volatilities)
+df_steps = pd.DataFrame({
+    'timestamp': dates,
+    'price': garch_prices,
+    'return': garch_returns,
+    'volatility': garch_volatilities
+})
 
-    # Save to CSV
-    asset_dir = f"{output_dir}/garch_asset_{i+1}"
-    df_price.to_csv(f"{asset_dir}/prices.csv", index=False)
-    df_steps.to_csv(f"{asset_dir}/simulation_steps.csv", index=False)
+# Save to CSV
+garch_dir = f"{output_dir}/garch"
+df_price.to_csv(f"{garch_dir}/prices.csv", index=False)
+df_steps.to_csv(f"{garch_dir}/simulation_steps.csv", index=False)
 
 print("Generating DCC time series...")
-dcc_prices, dcc_returns, dcc_volatilities, dcc_correlations = simulate_dcc(
-    n_days, n_assets)
-for i in range(n_assets):
-    # Create price DataFrame
-    df_price = pd.DataFrame({
-        'timestamp': dates,
-        'price': dcc_prices[:, i]
-    })
+dcc_prices, dcc_returns, dcc_volatilities = simulate_dcc(
+    n_days, start_price=start_price)
 
-    # Create simulation steps DataFrame
-    df_steps = pd.DataFrame({
-        'timestamp': dates,
-        'price': dcc_prices[:, i],
-        'return': dcc_returns[:, i],
-        'volatility': dcc_volatilities[:, i]
-    })
+# Create price DataFrame
+df_price = pd.DataFrame({
+    'timestamp': dates,
+    'price': dcc_prices
+})
 
-    # For each asset, save correlation with other assets
-    for j in range(n_assets):
-        df_steps[f'correlation_with_asset_{j+1}'] = [corr[i, j]
-                                                     for corr in dcc_correlations]
+# Create simulation steps DataFrame
+df_steps = pd.DataFrame({
+    'timestamp': dates,
+    'price': dcc_prices,
+    'return': dcc_returns,
+    'volatility': dcc_volatilities
+})
 
-    # Save to CSV - fix the directory path
-    asset_dir = f"{output_dir}/simulated_dcc_asset_{i+1}"
-    df_price.to_csv(f"{asset_dir}/prices.csv", index=False)
-    df_steps.to_csv(f"{asset_dir}/simulation_steps.csv", index=False)
+# Save to CSV
+dcc_dir = f"{output_dir}/dcc"
+df_price.to_csv(f"{dcc_dir}/prices.csv", index=False)
+df_steps.to_csv(f"{dcc_dir}/simulation_steps.csv", index=False)
 
 print("Generating Vine Copula time series...")
-vine_prices, vine_returns, vine_volatilities, vine_params = simulate_vine(
-    n_days, n_assets)
-for i in range(n_assets):
-    # Create price DataFrame
-    df_price = pd.DataFrame({
-        'timestamp': dates,
-        'price': vine_prices[:, i]
-    })
+vine_prices, vine_returns, vine_volatilities = simulate_vine(
+    n_days, start_price=start_price)
 
-    # Create simulation steps DataFrame
-    df_steps = pd.DataFrame({
-        'timestamp': dates,
-        'price': vine_prices[:, i],
-        'return': vine_returns[:, i],
-        'volatility': vine_volatilities[:, i]
-    })
+# Create price DataFrame
+df_price = pd.DataFrame({
+    'timestamp': dates,
+    'price': vine_prices
+})
 
-    # Add copula parameters
-    df_steps['rho_1_2'] = vine_params[:, 0]
-    df_steps['rho_1_3'] = vine_params[:, 1]
-    df_steps['rho_2_3_1'] = vine_params[:, 2]
+# Create simulation steps DataFrame
+df_steps = pd.DataFrame({
+    'timestamp': dates,
+    'price': vine_prices,
+    'return': vine_returns,
+    'volatility': vine_volatilities
+})
 
-    # Save to CSV - fix the directory path
-    asset_dir = f"{output_dir}/simulated_vine_asset_{i+1}"
-    df_price.to_csv(f"{asset_dir}/prices.csv", index=False)
-    df_steps.to_csv(f"{asset_dir}/simulation_steps.csv", index=False)
+# Save to CSV
+vine_dir = f"{output_dir}/vine"
+df_price.to_csv(f"{vine_dir}/prices.csv", index=False)
+df_steps.to_csv(f"{vine_dir}/simulation_steps.csv", index=False)
 
 print("Generating CoVaR time series...")
-covar_prices, covar_returns, covar_volatilities, covar_system_vol, covar_correlations = simulate_covar(
-    n_days, n_assets)
-for i in range(n_assets):
-    # Create price DataFrame
-    df_price = pd.DataFrame({
-        'timestamp': dates,
-        'price': covar_prices[:, i]
-    })
+covar_prices, covar_returns, covar_volatilities, covar_system_vol = simulate_covar(
+    n_days, start_price=start_price)
 
-    # Create simulation steps DataFrame
-    df_steps = pd.DataFrame({
-        'timestamp': dates,
-        'price': covar_prices[:, i],
-        'return': covar_returns[:, i],
-        'volatility': covar_volatilities[:, i],
-        'system_volatility': covar_system_vol
-    })
+# Create price DataFrame
+df_price = pd.DataFrame({
+    'timestamp': dates,
+    'price': covar_prices
+})
 
-    # For each asset, save correlation with other assets
-    for j in range(n_assets):
-        df_steps[f'correlation_with_asset_{j+1}'] = [corr[i, j]
-                                                     for corr in covar_correlations]
+# Create simulation steps DataFrame
+df_steps = pd.DataFrame({
+    'timestamp': dates,
+    'price': covar_prices,
+    'return': covar_returns,
+    'volatility': covar_volatilities,
+    'system_volatility': covar_system_vol
+})
 
-    # Save to CSV - fix the directory path
-    asset_dir = f"{output_dir}/simulated_covar_asset_{i+1}"
-    df_price.to_csv(f"{asset_dir}/prices.csv", index=False)
-    df_steps.to_csv(f"{asset_dir}/simulation_steps.csv", index=False)
+# Save to CSV
+covar_dir = f"{output_dir}/covar"
+df_price.to_csv(f"{covar_dir}/prices.csv", index=False)
+df_steps.to_csv(f"{covar_dir}/simulation_steps.csv", index=False)
 
 print(
     f"All simulations completed. CSV files saved in '{output_dir}' directory.")
