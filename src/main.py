@@ -201,6 +201,20 @@ def compare_copula_fits(data: pd.DataFrame):
     
     print("\nCreated empirical copula (uniform margins)")
     
+    # Step 2: Function to sample from the empirical copula
+    def sample_empirical_copula(n_samples_to_draw):
+        """
+        Sample from the empirical copula by resampling from the pseudo-observations
+        """
+        # Randomly select indices with replacement
+        indices = np.random.choice(n_samples, size=n_samples_to_draw, replace=True)
+        # Return the corresponding pseudo-observations
+        return uniform_data[indices]
+    
+    # Generate samples from the empirical copula for comparison
+    empirical_samples = sample_empirical_copula(n_samples)
+    print(f"Generated {n_samples} samples from the empirical copula")
+    
     # Define copula families to test
     basic_copulas = {
         'Gaussian': {'copula': None,  # Will use multivariate normal directly
@@ -271,29 +285,17 @@ def compare_copula_fits(data: pd.DataFrame):
         
         return energy_score
     
-    def calculate_metrics(empirical_copula, simulated_copula, name):
-        """Calculate energy score and tail dependence between empirical and fitted copula."""
+    def calculate_metrics(empirical_samples, copula_samples, name):
+        """Calculate energy score between empirical copula samples and fitted copula samples."""
         # Ensure arrays are float64 and 2D
-        emp = np.asarray(empirical_copula, dtype=np.float64)
-        sim = np.asarray(simulated_copula, dtype=np.float64)
+        emp = np.asarray(empirical_samples, dtype=np.float64)
+        sim = np.asarray(copula_samples, dtype=np.float64)
         
         # Calculate multivariate energy score
         energy_score = calculate_energy_score(emp, sim)
         
-        # Calculate tail dependence
-        # sim_df = pd.DataFrame(sim, columns=data.columns)
-        # analyzer = DataAnalyzer(sim_df)
-        
-        # Calculate tail dependence between first two dimensions
-        # tail_dep = analyzer.compute_tail_dependence(
-        #     sim_df.columns[0],
-        #     sim_df.columns[1]
-        # )
-        
         return {
             'energy_score': energy_score,
-            # 'upper_tail': tail_dep['upper_tail_dependence'],
-            # 'lower_tail': tail_dep['lower_tail_dependence']
         }
     
     # Compare basic copulas
@@ -318,16 +320,16 @@ def compare_copula_fits(data: pd.DataFrame):
                     params=copula_dict['params']
                 )
             
-            metrics = calculate_metrics(uniform_data, simulated, name)
+            # Compare samples from the empirical copula with samples from the fitted copula
+            metrics = calculate_metrics(empirical_samples, simulated, name)
             metrics['type'] = 'basic'
             results[name] = metrics
             
             print(f"Energy Score: {metrics['energy_score']:.4f}")
-            # print(f"Upper Tail: {metrics['upper_tail']:.4f}")
-            # print(f"Lower Tail: {metrics['lower_tail']:.4f}")
             
         except Exception as e:
             print(f"Error processing {name} copula: {str(e)}")
+            traceback.print_exc()
             continue
     
     # Compare time series copulas
@@ -347,17 +349,18 @@ def compare_copula_fits(data: pd.DataFrame):
             # Get copula simulations (these should already have uniform margins)
             simulated = copula.simulate(n_samples)
             
-            metrics = calculate_metrics(uniform_data, simulated, name)
+            # Compare samples from the empirical copula with samples from the time series copula
+            metrics = calculate_metrics(empirical_samples, simulated, name)
             metrics['type'] = 'time_series'
             results[name] = metrics
             
             print(f"Energy Score: {metrics['energy_score']:.4f}")
-            # print(f"Upper Tail: {metrics['upper_tail']:.4f}")
-            # print(f"Lower Tail: {metrics['lower_tail']:.4f}")
             
         except Exception as e:
             print(f"Error processing {name} model: {str(e)}")
+            traceback.print_exc()
             continue
+    
     
     # Plot results
     plt.figure(figsize=(12, 8))
@@ -378,47 +381,4 @@ def compare_copula_fits(data: pd.DataFrame):
     from matplotlib.patches import Patch
     legend_elements = [
         Patch(facecolor='#3498db', label='Basic Copulas'),
-        Patch(facecolor='#e74c3c', label='Time Series Copulas')
-    ]
-    plt.legend(handles=legend_elements)
-    
-    plt.tight_layout()
-    plt.savefig('copula_comparison.png')
-    plt.close()
-    
-    return results
-
-def main(base_dir="data", alpha=0.05, use_synthetic=False):
-    if use_synthetic:
-        print(f"🧪 Using synthetic data instead of loading from {base_dir}/")
-        df = load_synthetic_data()
-    else:
-        print(f"🔍 Loading data from: {base_dir}/ …")
-        df = load_returns_from_data_folder(base_dir)
-    print("\n===== DATA SUMMARY =====")
-    print(df.describe())
-    print("\nCorrelation matrix:\n", df.corr().round(4))
-    plot_returns(df)
-    run_garch_vine(df, alpha)
-    run_dcc(df, alpha)
-    run_covar(df, alpha)
-
-    print("\n\n===== PART 3: COPULA FAMILY COMPARISON =====")
-    compare_copula_fits(df)
-    #print(comparison_results)
-
-    # Use fallback only to avoid internal warnings/errors
-    print("\nRunning copula comparison (fallback to remove errors)...")
-    comp = compare_copulas_fallback(df)
-    print("\n===== COPULA COMPARISON TABLE =====")
-    pd.set_option("display.width", 150, "display.max_columns", None)
-    print(comp.to_string(index=False, float_format=lambda x: f"{x: .6g}"))
-    comp.to_csv("copula_comparison_clean.csv", index=False)
-    print("\nSaved clean comparison to copula_comparison_clean.csv.")
-    
-
-
-if __name__ == "__main__":
-    use_synthetic = os.getenv("USE_SYNTHETIC", "0") == "1"
-    main(os.getenv("DATA_DIR", "data"), float(
-        os.getenv("ALPHA", "0.05")), use_synthetic)
+        Patch(facecolor='#e74c3c', label='Tim
